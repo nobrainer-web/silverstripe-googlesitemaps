@@ -34,6 +34,17 @@ class GoogleSitemapController extends Controller
         'styleSheet'
     ];
 
+    /**
+     * Add an explicit URL handler so we can capture an optional `Locale`
+     * segment in addition to the default `$ID/$OtherID`. Used by the Fluent
+     * integration to serve per-locale sub-sitemaps.
+     *
+     * @var array
+     */
+    private static $url_handlers = [
+        'sitemap/$ID/$OtherID/$ThirdID' => 'sitemap',
+    ];
+
 
     /**
      * Default controller action for the sitemap.xml file. Renders a index
@@ -68,11 +79,16 @@ class GoogleSitemapController extends Controller
     {
         $class = $this->unsanitiseClassName($this->request->param('ID'));
         $page = intval($this->request->param('OtherID'));
+        $locale = $this->request->param('ThirdID') ?: null;
 
         if ($page) {
             if (!is_numeric($page)) {
                 return new HTTPResponse('Page not found', 404);
             }
+        }
+
+        if ($locale && !GoogleSitemap::inst()->supportsLocale($locale)) {
+            return new HTTPResponse('Page not found', 404);
         }
 
         if (GoogleSitemap::enabled()
@@ -83,8 +99,8 @@ class GoogleSitemapController extends Controller
             $this->getResponse()->addHeader('Content-Type', 'application/xml; charset="utf-8"');
             $this->getResponse()->addHeader('X-Robots-Tag', 'noindex');
 
-            $items = GoogleSitemap::inst()->getItems($class, $page);
-            $this->extend('updateGoogleSitemapItems', $items, $class, $page);
+            $items = GoogleSitemap::inst()->getItems($class, $page, $locale);
+            $this->extend('updateGoogleSitemapItems', $items, $class, $page, $locale);
 
             return array(
                 'Items' => $items

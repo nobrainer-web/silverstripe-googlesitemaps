@@ -32,6 +32,19 @@ The XML Sitemap can be accessed by going to http://yoursite.com/sitemap.xml
 
 See docs/en for more information about configuring the module.
 
+## Multi-language sites (Fluent)
+
+If `tractorcow/silverstripe-fluent` is installed the module automatically
+expands the sitemap index so every localised (class, page) entry is emitted
+once per configured locale, with URLs like
+`/sitemap.xml/sitemap/<ClassName>/<Page>/<Locale>`. Each sub-sitemap renders
+inside a `FluentState::withState()` block so locale filtering happens in SQL,
+regardless of the visitor's persisted locale.
+
+The integration is purely additive (`Only: classexists` guarded) so installs
+without Fluent are unaffected. See `docs/en/index.md` for how to opt out and
+the available extension hooks.
+
 ## Troubleshooting
 
 -   Flush this route to ensure the changes take effect (e.g http://yoursite.com/sitemap.xml?flush=1)

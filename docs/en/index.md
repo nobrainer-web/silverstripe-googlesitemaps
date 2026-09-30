@@ -125,6 +125,57 @@ URLs to include.
     	'/Security/login/'
     ));
 
+### Multi-language sites (Fluent integration)
+
+When [tractorcow/silverstripe-fluent](https://github.com/tractorcow-farm/silverstripe-fluent)
+is installed, the bundled `Wilr\GoogleSitemaps\Extensions\FluentSitemapExtension`
+auto-attaches and expands the sitemap index so every localised (class, page)
+entry is emitted once per configured locale, with a URL like:
+
+    /sitemap.xml/sitemap/<ClassName>/<Page>/<Locale>
+
+Each per-locale sub-sitemap is rendered with `FluentState::withState()`
+wrapped around the underlying ORM query, so locale filtering happens in SQL
+and the output does not depend on the visitor's persisted locale (cookie or
+session).
+
+Entries that are not localised — custom routes, and DataObjects without the
+Fluent extension — are kept as a single entry rather than being repeated per
+locale. Requests for a locale code that is not configured in Fluent return a
+404.
+
+The wiring is automatic via the `_config/fluent.yml` file shipped with this
+module and gated on `Only: classexists` so installs without Fluent are
+unaffected. If you'd rather opt out, remove the extension in your own YAML:
+
+```yml
+---
+Name: app-googlesitemaps-fluent
+After: googlesitemaps-fluent
+---
+Wilr\GoogleSitemaps\GoogleSitemap:
+  extensions:
+    FluentSitemapExtension: null
+```
+
+#### Extension hooks
+
+Three hooks make per-locale behaviour easy to extend or replicate for other
+localisation modules:
+
+- `updateGoogleSitemaps($sitemaps)` — called from `GoogleSitemap::getSitemaps()`
+  after the standard list is built. Mutate the passed `ArrayList` in place to
+  add/remove/expand entries (each entry can carry a `Locale` field that the
+  index template renders into the URL).
+- `withLocale(string $locale, callable $callback, &$result, &$handled)` —
+  called from `GoogleSitemap::inLocale()` whenever `getItems()` is invoked
+  with a locale code. Set `$handled = true` and assign to `$result` to
+  short-circuit the default fetch with your localisation module's state.
+- `updateSupportsLocale(string $locale, bool &$supported)` — called from
+  `GoogleSitemap::supportsLocale()` before a locale-suffixed sub-sitemap is
+  served. Set `$supported = true` for locale codes your module can render;
+  anything else returns a 404.
+
 ### Sitemapable
 
 For automatic registration of a DataObject subclass, implement the `Sitemapable`
